@@ -4,18 +4,21 @@
 
 ---
 
-## 🚀 Быстрый старт
+## 1. Установка Docker
 
-Для запуска проекта необходим **Docker**.
+Для запуска проекта необходимо установить **Docker** по ссылке -> https://www.docker.com/products/docker-desktop/
 
-### 1. Клонировать репозиторий
+### 2. Клонирование репозитория
 
 ```bash
 git clone https://github.com/Deniskc/practiceSiteRepo.git
+```
+
+```bash
 cd practiceSiteRepo/techsoft-practice
 ```
 
-### 2. Запустить проект
+### 4. Запуск проекта в терминале внутри директории
 
 ```bash
 docker-compose up -d --build
@@ -29,17 +32,13 @@ docker-compose up -d --build
 
 ---
 
-## 🛑 Остановка и управление
+## Выключить систему
 
 ```bash
-# Остановить все контейнеры
 docker-compose down
-
-# Остановить и удалить все данные (базу данных)
-docker-compose down -v
 ```
 
-## 🛠️ Технологический стек
+## Технологический стек
 
 | Компонент | Технология |
 | :--- | :--- |
