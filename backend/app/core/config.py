@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:3001"]
+    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:3001","http://localhost:5173","http://localhost:5174","http://127.0.0.1:5173","http://127.0.0.1:5174","https://127.0.0.1:5174", ]
 
     app_name: str = "Цифровая оптимизация промышленных предприятий"
     app_version: str = "1.0.0"

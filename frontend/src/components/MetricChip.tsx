@@ -41,23 +41,33 @@ function MetricChip({ value, caption, percent, level }: MetricChipProps) {
     return () => io.disconnect()
   }, [target])
 
-  return (
-    <div ref={ref} className="rounded-xl border border-line bg-surface p-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <CountUp
-          value={value}
-          className="font-mono text-3xl font-semibold tabular-nums text-accent"
-        />
-        <SourceBadge level={level} />
+  return (<div ref={ref} className="rounded-xl border border-line bg-surface p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          {/* Обернули число и знак % в отдельный flex, чтобы они склеились на левой стороне */}
+          <div className="flex items-baseline">
+            <CountUp
+                value={value}
+                className="font-mono text-3xl font-semibold tabular-nums text-accent"
+            />
+            {/* Если в подписи пришел процент, приклеиваем его к числу */}
+            {caption === '%' && (
+                <span className="font-mono text-3xl font-semibold text-accent">%</span>
+            )}
+          </div>
+
+          <SourceBadge level={level} />
+        </div>
+
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-line">
+          <div
+              className="h-full rounded-full bg-accent transition-[width] duration-[1100ms] ease-out"
+              style={{ width: `${width}%` }}
+          />
+        </div>
+
+        {/* Выводим текст снизу только в том случае, если это реальная подпись, а не знак % */}
+        {caption && caption !== '%' && <p className="mt-2 text-xs text-muted">{caption}</p>}
       </div>
-      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-line">
-        <div
-          className="h-full rounded-full bg-accent transition-[width] duration-[1100ms] ease-out"
-          style={{ width: `${width}%` }}
-        />
-      </div>
-      {caption && <p className="mt-2 text-xs text-muted">{caption}</p>}
-    </div>
   )
 }
 

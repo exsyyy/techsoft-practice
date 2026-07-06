@@ -10,14 +10,28 @@ interface CountUpProps {
 
 // Вытаскиваем число из строки, сохраняя префикс (+, ×, −) и суффикс (%, +)
 function parse(value: string) {
-  const m = value.match(/\d+(?:[.,]\d+)?/)
-  if (!m) return null
+  // 1. Защита: принудительно делаем строку из всего, что пришло (даже если это null или число)
+  const safeValue = value !== null && value !== undefined ? String(value) : '';
+
+  const m = safeValue.match(/\d+(?:[.,]\d+)?/)
+
+  // 2. Вместо null возвращаем дефолтную структуру, чтобы CountUp не упал дальше по коду
+  if (!m) {
+    return {
+      prefix: safeValue,
+      suffix: '',
+      num: 0,
+      decimals: 0,
+    }
+  }
+
   const raw = m[0]
   const idx = m.index ?? 0
   const decimals = /[.,]/.test(raw) ? raw.split(/[.,]/)[1].length : 0
+
   return {
-    prefix: value.slice(0, idx),
-    suffix: value.slice(idx + raw.length),
+    prefix: safeValue.slice(0, idx),
+    suffix: safeValue.slice(idx + raw.length),
     num: parseFloat(raw.replace(',', '.')),
     decimals,
   }

@@ -14,12 +14,18 @@ interface SourceBadgeProps {
 }
 
 function SourceBadge({ level, showLabel = false }: SourceBadgeProps) {
-  const meta = levelMeta[level]
+  // Защита: если уровня нет в базе стилей, берем нейтральный серый цвет
+  const meta = levelMeta[level] || {
+    dot: 'bg-gray-400',
+    text: 'text-muted',
+    label: 'Неизвестный источник'
+  }
+
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-xs">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-xs">
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-      <span className={meta.text}>[{level}]</span>
-      {showLabel && <span className="text-muted">{meta.label}</span>}
+      <span className={meta.text}>[{level ?? '?'}]</span>
+        {showLabel && <span className="text-muted">{meta.label}</span>}
     </span>
   )
 }
