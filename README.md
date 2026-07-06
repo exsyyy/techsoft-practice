@@ -6,16 +6,16 @@
 
 ## 1. Установка Docker
 
-Для запуска проекта необходимо установить **Docker** по ссылке -> https://www.docker.com/products/docker-desktop/
+Для запуска проекта необходимо установить **Docker** по ссылке -> https://www.docker.com/products/docker-desktop/. Затем Docker нужно запустить.
 
 ### 2. Клонирование репозитория
 
 ```bash
-git clone https://github.com/Deniskc/practiceSiteRepo.git
+git clone https://github.com/exsyyy/techsoft-practice
 ```
 
 ```bash
-cd practiceSiteRepo/techsoft-practice
+cd techsoft-practice
 ```
 
 ### 4. Запуск проекта в терминале внутри директории

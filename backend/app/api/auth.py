@@ -5,7 +5,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from sqlalchemy.orm import Session
 
-
 from app.core.database import get_db
 from app.services import auth_service
 from app.schemas import UserCreate, UserResponse, Token
