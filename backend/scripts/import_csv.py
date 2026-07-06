@@ -1,5 +1,6 @@
 import csv
 import sys
+import os
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -9,7 +10,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.core.database import SessionLocal
 from app.models import (
     Case, CaseStatus, CaseTechnology, Country,
-    Technology, User, TrustLevel
+    Technology, User, TrustLevel, Glossary  
 )
 from app.services.auth_service import get_password_hash
 
@@ -212,6 +213,49 @@ def import_cases(csv_path):
     print(f"   Всего строк: {len(rows)}")
     db.close()
 
+def import_glossary():
+    db = SessionLocal()
+    
+    csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'glossary.csv')
+    
+    if os.path.exists(csv_path):
+        import csv
+        from sqlalchemy.dialects.postgresql import insert
+        
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            data = []
+            seen = set()
+            
+            for row in reader:
+                term = row.get('term', '').strip()
+                if term and term not in seen:
+                    seen.add(term)
+                    tech = db.query(Technology).filter(Technology.name.ilike(row.get('technology_id', '').strip())).first() if row.get('technology_id') else None
+                    data.append({
+                        'term': term,
+                        'definition': row.get('definition', '').strip(),
+                        'technology_id': tech.id if tech else None
+                    })
+        
+        if data:
+            stmt = insert(Glossary).values(data).on_conflict_do_nothing(index_elements=['term'])
+            db.execute(stmt)
+            db.commit()
+            print(f"   Импортировано {len(data)} записей из glossary.csv")
+    else:
+        technologies = db.query(Technology).all()
+        tech_count = 0
+        for tech in technologies:
+            existing = db.query(Glossary).filter(Glossary.term == tech.name).first()
+            if not existing:
+                db.add(Glossary(term=tech.name, definition="", technology_id=tech.id))
+                tech_count += 1
+
+        db.commit()
+        print(f"   Технологий добавлено: {tech_count}")
+    
+    db.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Импорт кейсов из CSV")
@@ -219,3 +263,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     import_cases(args.csv_file)
+    import_glossary()
