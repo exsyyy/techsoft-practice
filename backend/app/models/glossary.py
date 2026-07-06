@@ -6,7 +6,7 @@ class Glossary(Base):
     __tablename__ = "glossary"
 
     id = Column(Integer, primary_key=True, index=True)
-    term = Column(String(100), nullable=False, unique=True)
+    term = Column(String(200), nullable=False, unique=True)
     definition = Column(Text, nullable=True)
     technology_id = Column(Integer, ForeignKey("technologies.id", ondelete="SET NULL"), unique=True, nullable=True)
 
