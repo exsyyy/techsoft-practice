@@ -1,0 +1,13 @@
+# for dev
+localhost {
+    reverse_proxy backend:8000
+    tls internal
+}
+
+
+# for prod
+
+# your-domain.com {
+#     reverse_proxy backend:8000
+#     tls your-email@example.com
+# }

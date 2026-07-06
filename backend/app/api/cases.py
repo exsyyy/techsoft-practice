@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.core.database import get_db
 from app.services import case_service
-from app.schemas import CaseCreate, CaseUpdate, CaseResponse
+from app.schemas import CaseResponse
+from app.schemas import CaseCreate, CaseUpdate
 
 router = APIRouter(prefix="/api/cases", tags=["cases"])
 
@@ -44,18 +45,19 @@ def get_cases(
 
 @router.get("/{case_id}", response_model=CaseResponse)
 def get_case(case_id: int, db: Session = Depends(get_db)):
-    """Получить один кейс по ID"""
     case = case_service.get_case_by_id(db, case_id)
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
-@router.post("/admin/cases", response_model=CaseResponse, status_code=201)
+
+# ADMIN
+@router.post("/admin/cases", response_model=CaseResponse, status_code=201, tags=["admin"])
 def create_case(case_data: CaseCreate, db: Session = Depends(get_db)):
 
     return case_service.create_case(db, case_data)
 
-@router.put("/admin/cases/{case_id}", response_model=CaseResponse)
+@router.put("/admin/cases/{case_id}", response_model=CaseResponse, tags=["admin"])
 def update_case(
     case_id: int,
     case_data: CaseUpdate,
@@ -66,9 +68,12 @@ def update_case(
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
-@router.delete("/admin/cases/{case_id}", status_code=204)
+@router.delete("/admin/cases/{case_id}", status_code=204, tags=["admin"])
 def delete_case(case_id: int, db: Session = Depends(get_db)):
     deleted = case_service.delete_case(db, case_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Case not found")
     return None
+
+
+

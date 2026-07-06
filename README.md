@@ -32,6 +32,15 @@ docker-compose up -d --build
 
 ---
 
+## Импорт данных
+
+Для импорта необходимо в папке backend создать папку data и внутри загрузить файл и назвать его export.csv
+Затем при запущенном docker-compose выполнить команду
+
+```bash
+docker exec -it cases_backend python scripts/import_csv.py /app/data/export.csv
+```
+
 ## Выключить систему
 
 ```bash
@@ -50,4 +59,6 @@ docker-compose down
 | **Containerization** | Docker, Docker Compose |
 
 ---
+
+
 
