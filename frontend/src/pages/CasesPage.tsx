@@ -105,7 +105,21 @@ function CasesPage() {
       if (filters.technology && !item.technologies?.some((t) => t.name === filters.technology)) return false
       if (filters.itSystem && !item.it_systems?.includes(filters.itSystem)) return false
       if (filters.level && item.trust_level !== filters.level) return false
-      if (filters.hasEffect && String(!!item.measurable_result) !== filters.hasEffect) return false
+      if (filters.hasEffect) {
+        const noEffectPlaceholder = "Открытые количественные результаты внедрения не обнаружены";
+
+        // Вычисляем реальное наличие эффекта
+        const hasRealEffect =
+            item.measurable_result &&
+            item.measurable_result.trim() !== "" &&
+            item.measurable_result !== "—" &&
+            item.measurable_result !== "-" &&
+            item.measurable_result.trim() !== noEffectPlaceholder;
+
+        // Приводим к строке 'true' или 'false' для сравнения с фильтром
+        if (String(!!hasRealEffect) !== filters.hasEffect) return false;
+      }
+
       if (filters.sourceType && item.source_type !== filters.sourceType) return false
       if (!isInDatePreset(item.created_at, filters.publishedAt)) return false
       if (!isInDatePreset(item.verification_date || '', filters.verifiedAt)) return false
