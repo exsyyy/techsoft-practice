@@ -43,7 +43,7 @@ docker-compose down
 | Компонент | Технология |
 | :--- | :--- |
 | **Backend** | FastAPI (Python) |
-| **Frontend** | Next.js + TypeScript + Tailwind CSS |
+| **Frontend** | React + TypeScript + Tailwind CSS |
 | **Database** | PostgreSQL |
 | **ORM** | SQLAlchemy |
 | **Migrations** | Alembic |
