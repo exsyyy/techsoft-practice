@@ -125,9 +125,9 @@ function CaseDetailPage() {
                 <section className="mt-6 rounded-xl border border-line bg-surface px-5 py-4">
                     <h2 className="font-display text-lg font-semibold text-ink">Этапы внедрения</h2>
                     <ol className="mt-3 grid gap-2 sm:grid-cols-2">
-                        {stagesArray.map((stage, index) => (
-                            <li key={index} className="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-muted">
-                                <span className="mr-2 font-mono font-semibold text-accent-deep">{index + 1}</span>{stage}
+                        {stagesArray.map((stage) => (
+                            <li className="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-muted">
+                                {stage}
                             </li>
                         ))}
                     </ol>

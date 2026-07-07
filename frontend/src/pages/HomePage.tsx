@@ -12,7 +12,7 @@ import {
   sortCases,
   uniqueValues,
 } from '../data/catalog'
-import type { CaseStudy,} from '../data/catalog'
+import type { CaseStudy } from '../data/catalog'
 
 const levelExplainers = [
   { level: 'A' as const, text: 'первичный источник или отчет с проверяемой методикой' },
@@ -198,18 +198,29 @@ function HomePage() {
           ))}
         </section>
 
-        <ScrollReveal as="section" className="grid gap-4 lg:grid-cols-3">
-          {/* Для каталога стран находим ID страны по ее имени для формирования корректной ссылки */}
+        <ScrollReveal as="section" className="grid gap-4 lg:grid-cols-3 items-start">
           <CatalogBlock
               title="Каталог стран"
               items={allCountries}
+              limit={5}
+              chipSize="large"
               to={(item) => {
                 const countryObj = serverCountries.find((c) => c.name === item)
                 return countryObj ? `/cases?country=${countryObj.id}` : '/cases'
               }}
           />
-          <CatalogBlock title="Каталог технологий" items={allTechnologies} to={() => '/cases'} />
-          <CatalogBlock title="Каталог бизнес-проблем" items={allBusinessProblems} to={() => '/cases'} />
+          <CatalogBlock
+              title="Каталог технологий"
+              items={allTechnologies}
+              limit={10}
+              to={() => '/cases'}
+          />
+          <CatalogBlock
+              title="Каталог бизнес-проблем"
+              items={allBusinessProblems}
+              limit={5}
+              to={() => '/cases'}
+          />
         </ScrollReveal>
 
         <ScrollReveal as="section" className="grid gap-6 lg:grid-cols-[1fr_1fr]">
@@ -282,15 +293,26 @@ interface CatalogBlockProps {
   title: string
   items: string[]
   to: (item: string) => string
+  limit?: number
+  chipSize?: 'normal' | 'large'
 }
 
-function CatalogBlock({ title, items, to }: CatalogBlockProps) {
+function CatalogBlock({ title, items, to, limit = 8, chipSize = 'normal' }: CatalogBlockProps) {
   return (
-      <div className="rounded-xl border border-line bg-surface p-5">
+      <div className="rounded-xl border border-line bg-surface p-5 h-full">
         <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {items.slice(0, 8).map((item) => (
-              <Link key={item} to={to(item)} className="rounded-full border border-line bg-paper px-3 py-1 text-sm text-muted transition hover:border-accent hover:text-accent-deep">
+        <div className="mt-4 flex flex-wrap gap-2">
+          {items.slice(0, limit).map((item) => (
+              <Link
+                  key={item}
+                  to={to(item)}
+                  title={item} // Показываем полное название при наведении
+                  className={`inline-block border border-line bg-paper text-muted transition hover:border-accent hover:text-accent-deep ${
+                      chipSize === 'large'
+                          ? 'rounded-full px-5 py-2.5 text-base font-medium' // Увеличенные плашки для стран
+                          : 'rounded-2xl px-3 py-1.5 text-sm line-clamp-3'   // Аккуратные плашки для длинного текста (бизнес-проблем)
+                  }`}
+              >
                 {item}
               </Link>
           ))}

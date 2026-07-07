@@ -27,28 +27,41 @@ function MetricChip({ value, caption, percent, level }: MetricChipProps) {
     const el = ref.current
     if (!el) return
     const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setWidth(target)
-            io.disconnect()
-          }
-        })
-      },
-      { threshold: 0.4 },
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              setWidth(target)
+              io.disconnect()
+            }
+          })
+        },
+        { threshold: 0.4 },
     )
     io.observe(el)
     return () => io.disconnect()
   }, [target])
 
-  return (<div ref={ref} className="rounded-xl border border-line bg-surface p-4">
+  // Проверяем, содержит ли строка хотя бы одну цифру для запуска анимации
+  const hasDigits = /\d/.test(value)
+
+  return (
+      <div ref={ref} className="rounded-xl border border-line bg-surface p-4">
         <div className="flex items-baseline justify-between gap-3">
           {/* Обернули число и знак % в отдельный flex, чтобы они склеились на левой стороне */}
           <div className="flex items-baseline">
-            <CountUp
-                value={value}
-                className="font-mono text-3xl font-semibold tabular-nums text-accent"
-            />
+            {hasDigits ? (
+                // Если есть цифры — используем анимированный CountUp
+                <CountUp
+                    value={value}
+                    className="font-mono text-3xl font-semibold tabular-nums text-accent"
+                />
+            ) : (
+                // Если цифр нет (текст "не опубликовано") — выводим строку напрямую без багов анимации
+                <span className="font-mono text-3xl font-semibold tabular-nums text-accent">
+              {value}
+            </span>
+            )}
+
             {/* Если в подписи пришел процент, приклеиваем его к числу */}
             {caption === '%' && (
                 <span className="font-mono text-3xl font-semibold text-accent">%</span>

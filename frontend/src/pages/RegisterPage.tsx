@@ -1,15 +1,17 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../api/AuthContext'
 import PageHeading from '../components/PageHeading'
 
-export const LoginPage: React.FC = () => {
-    const [usernameInput, setUsernameInput] = useState('')
-    const [passwordInput, setPasswordInput] = useState('')
+export const RegisterPage: React.FC = () => {
+    const [username, setUsername] = useState('')
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
     const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const { login } = useAuth()
+    const { register } = useAuth()
     const navigate = useNavigate()
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -18,13 +20,17 @@ export const LoginPage: React.FC = () => {
         setIsSubmitting(true)
 
         try {
-            await login(usernameInput, passwordInput)
-            navigate('/admin') // Перенаправляем в админку при успешном входе
+            await register(username, email, password)
+            setSuccess(true)
+            setTimeout(() => {
+                navigate('/login')
+            }, 2000)
         } catch (err: any) {
             console.error(err)
             setError(
+                err.response?.data?.detail?.[0]?.msg ||
                 err.response?.data?.detail ||
-                'Неверное имя пользователя или пароль. Попробуйте снова.'
+                'Ошибка при регистрации. Возможно, имя пользователя или email уже заняты.'
             )
         } finally {
             setIsSubmitting(false)
@@ -34,9 +40,9 @@ export const LoginPage: React.FC = () => {
     return (
         <div className="max-w-md mx-auto space-y-6 py-8">
             <PageHeading
-                eyebrow="АВТОРИЗАЦИЯ"
-                title="Вход в кабинет"
-                description="Войдите, чтобы добавлять новые кейсы, редактировать или верифицировать существующие материалы."
+                eyebrow="РЕГИСТРАЦИЯ"
+                title="Создать аккаунт"
+                description="Получите доступ к редактору базы данных для наполнения и валидации кейсов."
             />
 
             <div className="rounded-xl border border-line bg-surface p-6 shadow-sm">
@@ -46,17 +52,37 @@ export const LoginPage: React.FC = () => {
                     </div>
                 )}
 
+                {success && (
+                    <div className="mb-4 rounded-lg bg-mint/20 border border-mint/40 p-3 text-sm text-accent-deep">
+                        Регистрация успешна! Перенаправление на страницу входа...
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-xs font-medium text-muted mb-1">
-                            Имя пользователя / Логин
+                            Логин (Имя пользователя)
                         </label>
                         <input
                             type="text"
                             required
-                            value={usernameInput}
-                            onChange={(e) => setUsernameInput(e.target.value)}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             placeholder="ivanov_ii"
+                            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-muted mb-1">
+                            Электронная почта
+                        </label>
+                        <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="ivanov@example.com"
                             className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                         />
                     </div>
@@ -68,8 +94,8 @@ export const LoginPage: React.FC = () => {
                         <input
                             type="password"
                             required
-                            value={passwordInput}
-                            onChange={(e) => setPasswordInput(e.target.value)}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
                             className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                         />
@@ -77,21 +103,21 @@ export const LoginPage: React.FC = () => {
 
                     <button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || success}
                         className="w-full rounded-lg bg-accent py-2.5 text-sm font-semibold text-white transition hover:bg-accent-deep disabled:opacity-50"
                     >
-                        {isSubmitting ? 'Выполняется вход...' : 'Войти'}
+                        {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
                     </button>
                 </form>
 
                 <div className="mt-4 pt-4 border-t border-line text-center text-xs text-muted">
-                    Нет аккаунта?{' '}
-                    <Link to="/register" className="font-medium text-accent hover:underline">
-                        Зарегистрируйтесь
+                    Уже зарегистрированы?{' '}
+                    <Link to="/login" className="font-medium text-accent hover:underline">
+                        Войти
                     </Link>
                 </div>
             </div>
         </div>
     )
 }
-export default LoginPage
+export default RegisterPage
