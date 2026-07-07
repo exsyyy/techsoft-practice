@@ -26,6 +26,7 @@ app.include_router(auth_router)
 app.include_router(business_problems_router)
 app.include_router(glossary_router)
 app.include_router(stats_router)
+app.include_router(export_router)
 
 
 @app.get("/")
