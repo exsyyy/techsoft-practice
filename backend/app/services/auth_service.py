@@ -52,3 +52,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     
     return encoded_jwt
+
+
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return payload
+    except jwt.PyJWTError:
+        return None
