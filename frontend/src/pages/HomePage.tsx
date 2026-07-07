@@ -206,20 +206,21 @@ function HomePage() {
               chipSize="large"
               to={(item) => {
                 const countryObj = serverCountries.find((c) => c.name === item)
-                return countryObj ? `/cases?country=${countryObj.id}` : '/cases'
+                // Используем slug страны для формирования красивого URL
+                return countryObj ? `/countries/${countryObj.slug}` : '/cases'
               }}
           />
           <CatalogBlock
               title="Каталог технологий"
               items={allTechnologies}
               limit={10}
-              to={() => '/cases'}
+              // Свойство to удалено, блок теперь некликабельный
           />
           <CatalogBlock
               title="Каталог бизнес-проблем"
               items={allBusinessProblems}
               limit={5}
-              to={() => '/cases'}
+              // Свойство to удалено, блок теперь некликабельный
           />
         </ScrollReveal>
 
@@ -228,9 +229,9 @@ function HomePage() {
             <h2 className="font-display text-xl font-semibold text-ink">Популярные направления</h2>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {popularDirections.map((item) => (
-                  <Link key={item.label} to="/cases" className="rounded-lg border border-line bg-paper px-3 py-2 transition hover:border-accent">
+                  <Link key={item.label} to="" className="rounded-lg border border-line bg-paper px-3 py-2 transition hover:border-accent">
                     <div className="font-mono text-sm font-semibold text-accent-deep">{item.label}</div>
-                    <div className="text-xs text-muted">{item.count} кейс(а)</div>
+                    <div className="text-xs text-muted">{item.count} кейсов</div>
                   </Link>
               ))}
             </div>
@@ -292,7 +293,7 @@ function HomePage() {
 interface CatalogBlockProps {
   title: string
   items: string[]
-  to: (item: string) => string
+  to?: (item: string) => string // Сделали свойство необязательным (?)
   limit?: number
   chipSize?: 'normal' | 'large'
 }
@@ -302,20 +303,38 @@ function CatalogBlock({ title, items, to, limit = 8, chipSize = 'normal' }: Cata
       <div className="rounded-xl border border-line bg-surface p-5 h-full">
         <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
         <div className="mt-4 flex flex-wrap gap-2">
-          {items.slice(0, limit).map((item) => (
-              <Link
-                  key={item}
-                  to={to(item)}
-                  title={item} // Показываем полное название при наведении
-                  className={`inline-block border border-line bg-paper text-muted transition hover:border-accent hover:text-accent-deep ${
-                      chipSize === 'large'
-                          ? 'rounded-full px-5 py-2.5 text-base font-medium' // Увеличенные плашки для стран
-                          : 'rounded-2xl px-3 py-1.5 text-sm line-clamp-3'   // Аккуратные плашки для длинного текста (бизнес-проблем)
-                  }`}
-              >
-                {item}
-              </Link>
-          ))}
+          {items.slice(0, limit).map((item) => {
+            const baseClasses = `inline-block border border-line bg-paper text-muted ${
+                chipSize === 'large'
+                    ? 'rounded-full px-5 py-2.5 text-base font-medium'
+                    : 'rounded-2xl px-3 py-1.5 text-sm line-clamp-3'
+            }`
+
+            // Если передана функция to, рендерим кликабельную ссылку с hover-эффектами
+            if (to) {
+              return (
+                  <Link
+                      key={item}
+                      to={to(item)}
+                      title={item}
+                      className={`${baseClasses} transition hover:border-accent hover:text-accent-deep`}
+                  >
+                    {item}
+                  </Link>
+              )
+            }
+
+            // Если функции to нет, рендерим статичный блок
+            return (
+                <div
+                    key={item}
+                    title={item}
+                    className={`${baseClasses} cursor-default`}
+                >
+                  {item}
+                </div>
+            )
+          })}
         </div>
       </div>
   )

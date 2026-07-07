@@ -58,10 +58,10 @@ function Layout() {
               </NavLink>
             ))}
             <NavLink
-              to="/login"
+              to="/admin"
               className="ml-2 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-muted transition hover:border-accent hover:text-accent-deep"
             >
-              Войти
+              Админка
             </NavLink>
           </nav>
         </div>

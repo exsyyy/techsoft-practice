@@ -1,16 +1,18 @@
-﻿import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo, useState } from 'react'
+﻿import React, { useMemo, useState, useEffect } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { caseService } from '../api/caseService'
+import { useAuth } from '../api/AuthContext' // <-- Используем твой контекст!
 import SourceBadge from '../components/SourceBadge'
 import type { CaseStudy } from '../data/catalog'
+import type { CreateCaseStudyDto } from '../api/caseService'
 
 const statusOptions = ['draft', 'published', 'archived'] as const
 const levelOptions = ['A', 'B', 'C', 'D'] as const
 
-// Zod-схема, полностью синхронизированная с Pydantic-моделью FastAPI
 const caseSchema = z.object({
   title: z.string().min(5, 'Укажите название кейса'),
   company: z.string().min(2, 'Укажите компанию'),
@@ -65,42 +67,69 @@ const defaultValues: CaseForm = {
   applicability: '',
 }
 
+// Тип для страны, чтобы убрать any
+interface Country {
+  id: number
+  name: string
+}
+
 function AdminPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  // Достаем состояние из твоего провайдера
+  const { isAuthenticated, username } = useAuth()
+
+  // Защита роута
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login')
+    }
+  }, [isAuthenticated, navigate])
+
+  const roleLabel = username === 'admin_user' ? 'Администратор' : 'Редактор'
+
   const [selectedStatus, setSelectedStatus] = useState<'draft' | 'published' | 'archived'>('draft')
   const [savedDraftTitle, setSavedDraftTitle] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
 
-  // 1. Получаем кейсы с сервера
   const { data: serverCases = [], isLoading: isCasesLoading } = useQuery<CaseStudy[]>({
     queryKey: ['cases'],
     queryFn: () => caseService.getAll(),
   })
 
-  // 2. Получаем справочник стран для селектора и маппинга в сайдбаре
-  const { data: countries = [] } = useQuery({
+  const { data: countries = [] } = useQuery<Country[]>({
     queryKey: ['countries'],
-    queryFn: () => caseService.getCountries(),
+    queryFn: () => caseService.getCountries() as Promise<Country[]>,
   })
 
   const countryMap = useMemo(() => new Map(countries.map((c) => [c.id, c.name])), [countries])
 
-  // Фильтрация кейсов для сайдбара
   const visibleCases = useMemo(() => {
     return serverCases.filter((item) => item.status === selectedStatus)
   }, [serverCases, selectedStatus])
 
-  // 3. Мутация добавления карточки в БД через API
-  const createMutation = useMutation({
-    mutationFn: (payload: any) => caseService.create(payload),
+  const createMutation = useMutation<
+      CaseStudy,
+      Error,
+      CreateCaseStudyDto
+  >({
+    mutationFn: caseService.create,
+
     onSuccess: (data) => {
       setSavedDraftTitle(data.title)
-      queryClient.invalidateQueries({ queryKey: ['cases'] })
+
+      queryClient.invalidateQueries({
+        queryKey: ['cases'],
+      })
+
       reset(defaultValues)
     },
+
     onError: (error) => {
-      alert('Ошибка при сохранении кейса на сервере бэкенда.')
+      alert('Ошибка при создании кейса')
       console.error(error)
-    }
+    },
   })
 
   const {
@@ -114,22 +143,61 @@ function AdminPage() {
   const watchedLevel = watch('trust_level')
   const watchedVendor = watch('is_vendor_case')
 
-  // 4. Сборка и отправка структуры данных
+  // 1. Сначала добавим импорт типа CaseStudy (он у тебя уже есть)
+// 2. Внутри onSubmit прописываем тип:
+
   const onSubmit = (values: CaseForm) => {
-    // Форматируем технологии в массив названий, как ожидает эндпоинт FastAPI
     const techArray = values.technology_names
         ? values.technology_names.split(',').map((t) => t.trim()).filter(Boolean)
-        : []
+        : [];
 
+    // Создаем объект с нужной структурой
     const formattedPayload = {
       ...values,
-      country_id: Number(values.country_id), // строго кастим к числу для внешнего ключа БД
-      technologies: techArray.map(name => ({ name })), // Обертка в объекты, если бэк принимает связи
-      // Если бэк принимает плоский массив строк для парсинга связей, оставь просто techArray
-    }
+      country_id: Number(values.country_id),
+      technologies: techArray.map(name => ({ name })),
+    };
 
-    createMutation.mutate(formattedPayload)
+    // ГЛАВНОЕ: используем as, чтобы сказать TypeScript:
+    // "Я знаю, что это именно тот тип, который нужен!"
+    // Замени "any" на название твоего типа из сервиса, если оно есть.
+    createMutation.mutate(formattedPayload as any);
+
+    // Либо, если хочешь идеальной типизации:
+    // createMutation.mutate(formattedPayload as Parameters<typeof caseService.create>[0]);
+  };
+
+  const handleDownloadCsv = async () => {
+    setIsExporting(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:8000/api/admin/export/csv', {
+        method: 'GET',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      })
+
+      if (!response.ok) throw new Error('Ошибка при выгрузке CSV')
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'cases_export.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Ошибка экспорта:', error)
+      alert('Не удалось скачать CSV реестр.')
+    } finally {
+      setIsExporting(false)
+    }
   }
+
+  if (!isAuthenticated) return null
 
   return (
       <div className="space-y-8">
@@ -141,8 +209,19 @@ function AdminPage() {
               Интерфейс редактора для добавления карточек напрямую в базу данных PostgreSQL через эндпоинты FastAPI.
             </p>
           </div>
-          <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-            Текущая роль: <span className="font-mono font-semibold text-accent-deep">администратор</span>
+          <div className="flex flex-col items-end gap-3">
+            <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
+              Текущая роль: <span className="font-mono font-semibold text-accent-deep">{roleLabel}</span>
+              {username && <span className="ml-2 opacity-60">({username})</span>}
+            </div>
+            <button
+                onClick={handleDownloadCsv}
+                disabled={isExporting}
+                type="button"
+                className="rounded-lg border border-accent bg-transparent px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent hover:text-white disabled:opacity-50"
+            >
+              {isExporting ? 'Формирование...' : 'Скачать CSV реестр'}
+            </button>
           </div>
         </div>
 
@@ -253,7 +332,7 @@ function AdminPage() {
               <div className="mt-3 space-y-3 max-h-[680px] overflow-y-auto pr-1">
                 {isCasesLoading ? (
                     <div className="text-sm text-muted text-center py-4">Обновление списка...</div>
-                ) : visibleCases.map((item) => (
+                ) : visibleCases.map((item: CaseStudy) => (
                     <div key={item.id} className="rounded-lg border border-line bg-paper p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -262,7 +341,7 @@ function AdminPage() {
                             {item.company} · {countryMap.get(item.country_id) || `ID: ${item.country_id}`}
                           </div>
                         </div>
-                        <SourceBadge level={item.trust_level} />
+                        <SourceBadge level={item.trust_level as any} />
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
                         <span className="rounded-full border border-line px-2 py-0.5">{item.status}</span>
@@ -284,29 +363,31 @@ interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string
 }
 
-const TextInput = ({ label, error, ...props }: TextInputProps) => {
+const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(({ label, error, ...props }, ref) => {
   return (
       <label className="block text-xs font-medium text-muted">
         {label}
-        <input {...props} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" />
+        <input ref={ref} {...props} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" />
         {error && <span className="mt-1 block text-xs text-bad">{error}</span>}
       </label>
   )
-}
+})
+TextInput.displayName = 'TextInput'
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string
   error?: string
 }
 
-const Textarea = ({ label, error, ...props }: TextareaProps) => {
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ label, error, ...props }, ref) => {
   return (
       <label className="block text-xs font-medium text-muted md:col-span-2">
         {label}
-        <textarea {...props} className="mt-1 min-h-24 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" />
+        <textarea ref={ref} {...props} className="mt-1 min-h-24 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" />
         {error && <span className="mt-1 block text-xs text-bad">{error}</span>}
       </label>
   )
-}
+})
+Textarea.displayName = 'Textarea'
 
 export default AdminPage

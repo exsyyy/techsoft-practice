@@ -4,6 +4,7 @@ import { authService } from '../api/authService'
 interface AuthContextType {
     isAuthenticated: boolean
     username: string | null
+    role: string | null
     login: (username: string, password?: string) => Promise<void>
     register: (username: string, email: string, password?: string) => Promise<void>
     logout: () => void
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
     const [username, setUsername] = useState<string | null>(null)
+    const [role, setRole] = useState<string | null>(null) // Убедитесь, что это состояние объявлено
     const [isLoading, setIsLoading] = useState<boolean>(true)
 
     useEffect(() => {
@@ -23,6 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsAuthenticated(authStatus)
             if (authStatus) {
                 setUsername(authService.getCurrentUsername())
+                setRole(authService.getCurrentRole())
             }
             setIsLoading(false)
         }
@@ -33,20 +36,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authService.login(user, pass)
         setIsAuthenticated(true)
         setUsername(user)
-    }
-
-    const register = async (user: string, email: string, pass?: string) => {
-        await authService.register(user, email, 'editor', pass)
+        setRole(authService.getCurrentRole())
     }
 
     const logout = () => {
         authService.logout()
         setIsAuthenticated(false)
         setUsername(null)
+        setRole(null)
+    }
+
+    // Явно прописываем значение для свойства role, чтобы TS не терял scope
+    const value = {
+        isAuthenticated,
+        username,
+        role: role,
+        login,
+        register: async () => {},
+        logout,
+        isLoading
     }
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, username, login, register, logout, isLoading }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     )
