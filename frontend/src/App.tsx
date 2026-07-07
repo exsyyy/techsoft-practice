@@ -10,6 +10,8 @@ import GlossaryPage from './pages/GlossaryPage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
 import NotFoundPage from './pages/NotFoundPage'
+import ProtectedRoute from './api/ProtectedRout'
+
 
 function App() {
   return (
@@ -23,8 +25,17 @@ function App() {
         <Route path="technologies" element={<TechnologiesPage />} />
         <Route path="glossary" element={<GlossaryPage />} />
         <Route path="login" element={<LoginPage />} />
-        <Route path="admin" element={<AdminPage />} />
+        <Route
+            path="admin"
+            element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+        />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="/countries/:slug" element={<CountryPage />} />
+
       </Route>
     </Routes>
   )

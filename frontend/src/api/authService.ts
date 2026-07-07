@@ -6,7 +6,7 @@ export interface UserResponse {
     id: number
     username: string
     email: string
-    role: string
+    role: string // Предполагаем, что сервер возвращает это поле
     created_at: string
 }
 
@@ -15,7 +15,6 @@ export interface Token {
     token_type: string
 }
 
-// Настройка перехватчика (interceptors) для автоматического добавления JWT в заголовки
 axios.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token')
@@ -24,57 +23,51 @@ axios.interceptors.request.use(
         }
         return config
     },
-    (error) => {
-        return Promise.reject(error)
-    }
+    (error) => Promise.reject(error)
 )
 
 export const authService = {
-    // Регистрация нового пользователя
     register: async (username: string, email: string, role = 'editor', password?: string): Promise<UserResponse> => {
         const response = await axios.post<UserResponse>(`${API_URL}/auth/register`, {
-            username,
-            email,
-            role,
-            password,
+            username, email, role, password,
         })
         return response.data
     },
 
-    // Вход в систему (передача данных в формате URL-encoded согласно OAuth2)
     login: async (username: string, password?: string): Promise<Token> => {
         const formData = new URLSearchParams()
         formData.append('username', username)
-        if (password) {
-            formData.append('password', password)
-        }
+        if (password) formData.append('password', password)
 
         const response = await axios.post<Token>(`${API_URL}/auth/login`, formData, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         })
 
         if (response.data.access_token) {
             localStorage.setItem('token', response.data.access_token)
             localStorage.setItem('username', username)
+
+            // Получаем данные профиля, чтобы узнать роль сразу при логине
+            try {
+                const profile = await axios.get<UserResponse>(`${API_URL}/auth/me`)
+                localStorage.setItem('role', profile.data.role)
+            } catch (e) {
+                console.error("Не удалось получить роль пользователя")
+            }
         }
         return response.data
     },
 
-    // Выход из системы
     logout: () => {
         localStorage.removeItem('token')
         localStorage.removeItem('username')
+        localStorage.removeItem('role')
     },
 
-    // Проверка, авторизован ли пользователь локально
-    isAuthenticated: (): boolean => {
-        return !!localStorage.getItem('token')
-    },
+    isAuthenticated: (): boolean => !!localStorage.getItem('token'),
 
-    // Получить имя текущего пользователя
-    getCurrentUsername: (): string | null => {
-        return localStorage.getItem('username')
-    }
+    getCurrentUsername: (): string | null => localStorage.getItem('username'),
+
+    // Добавляем метод получения роли
+    getCurrentRole: (): string | null => localStorage.getItem('role')
 }
