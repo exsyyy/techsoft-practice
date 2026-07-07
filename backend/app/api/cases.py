@@ -22,7 +22,7 @@ def get_cases(
     sort_by: str = Query("created_at", description="Поле для сортировки"),
     order: str = Query("desc", description="Порядок: desc или asc"),
     skip: int = Query(0, ge=0, description="Смещение для пагинации"),
-    limit: int = Query(20, ge=1, le=100, description="Количество записей на странице"),
+    limit: int = Query(55, ge=1, le=100, description="Количество записей на странице"),
     db: Session = Depends(get_db),
 ):
 
