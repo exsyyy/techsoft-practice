@@ -40,7 +40,7 @@ services:
       
     command: >
       sh -c "alembic upgrade head &&
-             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   caddy:
     image: caddy:2-alpine
@@ -54,6 +54,19 @@ services:
       - caddy_config:/config
     depends_on:
       - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cases_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   caddy_data:

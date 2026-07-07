@@ -241,6 +241,7 @@ def import_glossary():
                 if term and term not in seen:
                     seen.add(term)
                     tech = db.query(Technology).filter(Technology.name.ilike(row.get('technology_id', '').strip())).first() if row.get('technology_id') else None
+                    term = term[0].upper() + term[1::]
                     data.append({
                         'term': term,
                         'definition': row.get('definition', '').strip(),
