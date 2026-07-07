@@ -33,13 +33,22 @@ def get_or_create_technology(db, name):
     if not name or not name.strip():
         return None
     name = name.strip()
+    
     tech = db.query(Technology).filter(Technology.name == name).first()
-    if not tech:
-        slug = name.lower().replace(" ", "-").replace("(", "").replace(")", "")[:100]
-        tech = Technology(name=name, slug=slug)
-        db.add(tech)
-        db.flush()
-        print(f"Создана технология: {name}")
+    if tech:
+        return tech
+    
+    slug = name.lower().replace(" ", "-").replace("(", "").replace(")", "")[:100]
+    
+    existing_slug = db.query(Technology).filter(Technology.slug == slug).first()
+    if existing_slug:
+        import random
+        slug = f"{slug}-{random.randint(1000, 9999)}"
+    
+    tech = Technology(name=name, slug=slug)
+    db.add(tech)
+    db.flush()
+    print(f"Создана технология: {name}")
     return tech
 
 
