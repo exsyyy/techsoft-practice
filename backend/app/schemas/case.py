@@ -25,7 +25,7 @@ class CaseBase(BaseModel):
     facility_type: str
     business_problem: str
     problem_description: str
-    technology_ids: List[int]  
+    technology_ids: List[int] = []
     it_systems: Optional[str] = None
     solution_description: str
     implementation_stages: Optional[str] = None
@@ -43,7 +43,8 @@ class CaseBase(BaseModel):
     is_vendor_case: bool = False
 
 class CaseCreate(CaseBase):
-    author_id: int
+
+    author_id: Optional[int] = None
 
 class CaseUpdate(BaseModel):
     title: Optional[str] = None

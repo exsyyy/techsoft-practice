@@ -5,14 +5,27 @@ import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { caseService } from '../api/caseService'
-import { useAuth } from '../api/AuthContext' // Исправлен импорт под вашу структуру проекта
+import { useAuth } from '../api/AuthContext'
 import SourceBadge from '../components/SourceBadge'
 import type { CaseStudy } from '../data/catalog'
 import type { CreateCaseStudyDto } from '../api/caseService'
 
-const statusOptions = ['draft', 'published', 'archived'] as const
+// 1. Обновляем массив статусов точно под бэкенд FastAPI
+const statusOptions = ['draft', 'under_review', 'verified', 'published', 'rejected'] as const
 const levelOptions = ['A', 'B', 'C', 'D'] as const
 
+type CaseStatus = typeof statusOptions[number]
+
+// Соответствие статусов для понятного отображения на русском языке
+const statusLabels: Record<CaseStatus, string> = {
+  draft: 'Черновик',
+  under_review: 'На проверке',
+  verified: 'Проверен',
+  published: 'Опубликован',
+  rejected: 'Отклонен',
+}
+
+// 2. Меняем валидацию статуса в Zod-схеме
 const caseSchema = z.object({
   title: z.string().min(5, 'Укажите название кейса'),
   company: z.string().min(2, 'Укажите компанию'),
@@ -27,7 +40,7 @@ const caseSchema = z.object({
   source_url: z.string().url('Укажите корректную ссылку'),
   created_at: z.string().min(1, 'Укажите дату публикации'),
   verification_date: z.string().min(1, 'Укажите дату проверки'),
-  status: z.enum(['draft', 'published', 'archived']),
+  status: z.enum(statusOptions), // Ссылка на новый массив
   is_vendor_case: z.boolean(),
   final_value: z.string().min(1, 'Укажите измеримый эффект или прочерк'),
   result_unit: z.string().min(2, 'Укажите единицу измерения / подпись эффекта'),
@@ -76,10 +89,8 @@ function AdminPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  // Достаем состояние авторизации
   const { isAuthenticated, username } = useAuth()
 
-  // Защита роута
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login')
@@ -88,17 +99,16 @@ function AdminPage() {
 
   const roleLabel = username === 'admin_user' ? 'Администратор' : 'Редактор'
 
-  const [selectedStatus, setSelectedStatus] = useState<'draft' | 'published' | 'archived'>('draft')
+  // 3. Стейт начального выбранного таба тоже переводим на новый тип
+  const [selectedStatus, setSelectedStatus] = useState<CaseStatus>('draft')
   const [savedDraftTitle, setSavedDraftTitle] = useState('')
   const [isExporting, setIsExporting] = useState(false)
 
-  // Загрузка кейсов с сервера
   const { data: serverCases = [], isLoading: isCasesLoading } = useQuery<CaseStudy[]>({
     queryKey: ['cases'],
     queryFn: () => caseService.getAll(),
   })
 
-  // Загрузка стран для сопоставления ID
   const { data: countries = [] } = useQuery<Country[]>({
     queryKey: ['countries'],
     queryFn: () => caseService.getCountries() as Promise<Country[]>,
@@ -106,12 +116,10 @@ function AdminPage() {
 
   const countryMap = useMemo(() => new Map(countries.map((c) => [c.id, c.name])), [countries])
 
-  // Фильтрация кейсов по выбранной вкладке статуса
   const visibleCases = useMemo(() => {
     return serverCases.filter((item) => item.status === selectedStatus)
   }, [serverCases, selectedStatus])
 
-  // Мутация создания нового кейса
   const createMutation = useMutation<CaseStudy, Error, CreateCaseStudyDto>({
     mutationFn: caseService.create,
     onSuccess: (data) => {
@@ -125,16 +133,14 @@ function AdminPage() {
     },
   })
 
-  // Мутация обновления статуса существующей карточки (PATCH / PUT эндпоинт)
+  // 4. Обновляем типизацию входящего статуса для мутации патча
   const updateStatusMutation = useMutation<
       CaseStudy,
       Error,
-      { id: number; status: 'draft' | 'published' | 'archived' }
+      { id: number; status: CaseStatus }
   >({
-    // Явное приведение status к any убирает ошибку TS2322 несовместимости строковых литералов
     mutationFn: ({ id, status }) => caseService.update(id, { status: status as any }),
     onSuccess: () => {
-      // Обновляем список кейсов в реальном времени
       queryClient.invalidateQueries({ queryKey: ['cases'] })
     },
     onError: (error) => {
@@ -162,6 +168,11 @@ function AdminPage() {
     const formattedPayload = {
       ...values,
       country_id: Number(values.country_id),
+
+      // Передаем то, что изначально требовала база данных:
+      author_id: 1,              // ID администратора (обычно 1 в тестовых БД)
+      technology_ids: [],        // Пустой массив ID, так как привязка идет через technologies
+
       technologies: techArray.map((name) => ({ name })),
     }
 
@@ -198,8 +209,8 @@ function AdminPage() {
     }
   }
 
-  // Быстрое изменение статуса по клику
-  const handleStatusChange = (caseId: number, newStatus: 'draft' | 'published' | 'archived') => {
+  // 5. Меняем тип аргумента на новый CaseStatus
+  const handleStatusChange = (caseId: number, newStatus: CaseStatus) => {
     updateStatusMutation.mutate({ id: caseId, status: newStatus })
   }
 
@@ -234,7 +245,6 @@ function AdminPage() {
         </div>
 
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          {/* Форма создания нового кейса */}
           <form onSubmit={handleSubmit(onSubmit)} className="rounded-xl border border-line bg-surface p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-xl font-semibold text-ink">Новая карточка кейса</h2>
@@ -302,7 +312,7 @@ function AdminPage() {
                 >
                   {statusOptions.map((status) => (
                       <option key={status} value={status}>
-                        {status}
+                        {statusLabels[status]}
                       </option>
                   ))}
                 </select>
@@ -360,11 +370,11 @@ function AdminPage() {
             </div>
           </form>
 
-          {/* Колонка списка кейсов и быстрого переключения статуса */}
           <aside className="space-y-4">
             <div className="rounded-xl border border-line bg-surface p-5">
               <h2 className="font-display text-lg font-semibold text-ink">Управление статусами</h2>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              {/* 6. Вывод кнопок переключения табов с русскими названиями */}
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {statusOptions.map((status) => (
                     <button
                         key={status}
@@ -376,7 +386,7 @@ function AdminPage() {
                                 : 'border-line bg-paper text-muted'
                         }`}
                     >
-                      {status}
+                      {statusLabels[status]}
                     </button>
                 ))}
               </div>
@@ -384,7 +394,7 @@ function AdminPage() {
 
             <div className="rounded-xl border border-line bg-surface p-5">
               <h2 className="font-display text-lg font-semibold text-ink">
-                Кейсы в статусе: <span className="text-accent">{selectedStatus}</span>
+                Кейсы в статусе: <span className="text-accent">{statusLabels[selectedStatus]}</span>
               </h2>
               <div className="mt-3 space-y-3 max-h-[680px] overflow-y-auto pr-1">
                 {isCasesLoading ? (
@@ -414,7 +424,8 @@ function AdminPage() {
                             <div className="text-[10px] font-mono text-muted uppercase tracking-wider mb-1.5">
                               Переместить в:
                             </div>
-                            <div className="flex gap-1.5">
+                            {/* 7. Все 5 кнопок быстрого перевода карточки в нужный статус */}
+                            <div className="flex flex-wrap gap-1.5">
                               {statusOptions.map((opt) => (
                                   <button
                                       key={opt}
@@ -427,7 +438,7 @@ function AdminPage() {
                                               : 'bg-surface border border-line text-ink hover:border-accent hover:text-accent-deep'
                                       }`}
                                   >
-                                    {opt === 'draft' ? 'Черновик' : opt === 'published' ? 'Опубликован' : 'Архив'}
+                                    {statusLabels[opt]}
                                   </button>
                               ))}
                             </div>
