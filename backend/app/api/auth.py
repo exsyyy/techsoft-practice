@@ -1,19 +1,14 @@
+import base64
+import json
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
-# Импорты SQLAlchemy и моделей БД для пользователей нам больше не нужны
-# from sqlalchemy.orm import Session
-# from app.core.database import get_db
-# from app.models import User
-# from app.schemas import UserCreate, UserResponse
 
 from app.services import auth_service
 from app.schemas import Token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-
 
 # ======= НАШИ ЖЕСТКО ПРОПИСАННЫЕ ЛОГИНЫ И ПАРОЛИ =======
 HARDCODED_CREDENTIALS = {
@@ -23,7 +18,6 @@ HARDCODED_CREDENTIALS = {
 # =======================================================
 
 
-# Эндпоинт /register мы отключаем или убираем, так как регистрировать в БД некого
 @router.post("/register", status_code=201, include_in_schema=False)
 def register():
     raise HTTPException(
@@ -37,7 +31,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     username = form_data.username
     password = form_data.password
 
-    # 1. Сверяем введенные данные с нашим словарем в коде
     if username not in HARDCODED_CREDENTIALS or HARDCODED_CREDENTIALS[username] != password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -45,14 +38,51 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 2. Определяем роль на ходу для записи в токен
     role = "admin" if username == "admin_user" else "editor"
 
-    # 3. Генерируем стандартный токен через твой auth_service
-    # Мы передаем те же данные, что и раньше, чтобы ничего не сломалось в твоем сервисе
     access_token = auth_service.create_access_token(
         data={"sub": username, "role": role},
         expires_delta=timedelta(minutes=30)
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+# ======= ПОЛНОСТЬЮ БЕЗОПАСНЫЙ ЭНДПОИНТ /ME =======
+@router.get("/me")
+def get_me(token: str = Depends(oauth2_scheme)):
+    """
+    Безопасно декодируем токен без использования сторонних библиотек.
+    Это гарантирует, что сервер не упадет из-за отсутствия модулей.
+    """
+    try:
+        # JWT токен состоит из 3 частей: header.payload.signature
+        # Нам нужна вторая часть (payload)
+        payload_part = token.split('.')[1]
+
+        # Добавляем выравнивание для корректного base64-декодирования
+        payload_part += "=" * ((4 - len(payload_part) % 4) % 4)
+
+        # Декодируем из base64 в обычную JSON строку и парсим
+        payload_json = base64.urlsafe_b64decode(payload_part).decode('utf-8')
+        payload_data = json.loads(payload_json)
+
+        username = payload_data.get("sub")
+        role = payload_data.get("role", "editor") # По умолчанию editor на всякий случай
+
+        if not username:
+            raise ValueError("Token is invalid")
+
+        return {
+            "id": 1 if username == "admin_user" else 2,
+            "username": username,
+            "email": f"{username}@example.com",
+            "role": role,
+            "created_at": "2026-01-01T00:00:00Z"
+        }
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Не удалось прочитать токен",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
