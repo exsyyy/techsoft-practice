@@ -2,6 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api import cases_router, countries_router, technologies_router, auth_router, business_problems_router, glossary_router, stats_router, export_router  
+import subprocess
+import threading
+
+def import_data():
+    try:
+        subprocess.run(
+            ["python", "-u", "scripts/import_csv.py", "data/export.csv"],
+            capture_output=False
+        )
+    except Exception as e:
+        print(f"Ошибка импорта: {e}")
+
+threading.Thread(target=import_data, daemon=True).start()
 
 app = FastAPI(
     title=settings.app_name,

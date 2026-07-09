@@ -6,7 +6,15 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    host: '127.0.0.1',  // слушаем IPv4-loopback, чтобы совпадало с исключением VPN
-    port: 5173,
+    host: '0.0.0.0',      // ← обязательно для Amvera
+    port: 3000,           // ← порт должен совпадать с containerPort
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 3000,
+    allowedHosts: [
+      'techsoftfrtd-denisdenisdenis.amvera.io',
+      '.amvera.io',
+    ],
   },
 })
