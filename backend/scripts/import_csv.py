@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.core.database import SessionLocal
 from app.models import (
     Case, CaseStatus, CaseTechnology, Country,
-    Technology, User, TrustLevel, Glossary  
+    Technology, User, TrustLevel, Glossary
 )
 from app.services.auth_service import get_password_hash
 
@@ -39,18 +39,18 @@ def get_or_create_technology(db, name):
     if not name or not name.strip():
         return None
     name = name.strip()
-    
+
     tech = db.query(Technology).filter(Technology.name == name).first()
     if tech:
         return tech
-    
+
     slug = name.lower().replace(" ", "-").replace("(", "").replace(")", "")[:100]
-    
+
     existing_slug = db.query(Technology).filter(Technology.slug == slug).first()
     if existing_slug:
         import random
         slug = f"{slug}-{random.randint(1000, 9999)}"
-    
+
     tech = Technology(name=name, slug=slug)
     db.add(tech)
     db.flush()
@@ -124,53 +124,53 @@ def parse_technologies(tech_str):
 
 def import_cases(csv_path):
     db = SessionLocal()
-    
+
     if not Path(csv_path).exists():
         print(f"Файл не найден: {csv_path}")
         return
-    
+
     print(f"Загружаю файл: {csv_path}")
-    
+
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
-    
+
     print(f"Найдено {len(rows)} строк")
-    
+
     imported = 0
     skipped = 0
-    
+
     for i, row in enumerate(rows, 1):
         title = row.get("название кейса", "").strip()
         if not title:
             print(f"Строка {i}: пропущена (нет названия)")
             skipped += 1
             continue
-        
+
         country_name = row.get("страна", "").strip()
         if not country_name:
             print(f"Строка {i}: пропущена (нет страны)")
             skipped += 1
             continue
-        
+
         existing = db.query(Case).filter(Case.title == title).first()
         if existing:
             print(f"⏭Строка {i}: кейс уже существует: {title[:50]}...")
             skipped += 1
             continue
-        
+
         country = get_or_create_country(db, country_name)
         if not country:
             print(f"Строка {i}: не удалось создать страну {country_name}")
             skipped += 1
             continue
-        
+
         author_name = row.get("автор карточки", "").strip()
         author = get_or_create_user(db, author_name) if author_name else None
-        
+
         verifier_name = row.get("проверяющий участник", "").strip()
         verifier = get_or_create_user(db, verifier_name) if verifier_name else None
-        
+
         case = Case(
             title=title,
             country_id=country.id,
@@ -199,22 +199,22 @@ def import_cases(csv_path):
             author_id=author.id if author else None,
             verifier_id=verifier.id if verifier else None,
         )
-        
+
         db.add(case)
         db.flush()
-        
+
         tech_str = row.get("примененная технология или методика", "").strip()
         tech_names = parse_technologies(tech_str)
-        
+
         for tech_name in tech_names:
             tech = get_or_create_technology(db, tech_name)
             if tech:
                 ct = CaseTechnology(case_id=case.id, technology_id=tech.id)
                 db.add(ct)
-        
+
         imported += 1
         print(f" Строка {i}: импортирован '{title[:50]}...'")
-    
+
     db.commit()
     print(f"\n Импорт завершён!")
     print(f"   Импортировано: {imported}")
@@ -224,18 +224,18 @@ def import_cases(csv_path):
 
 def import_glossary():
     db = SessionLocal()
-    
+
     csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'glossary.csv')
-    
+
     if os.path.exists(csv_path):
         import csv
         from sqlalchemy.dialects.postgresql import insert
-        
+
         with open(csv_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             data = []
             seen = set()
-            
+
             for row in reader:
                 term = row.get('term', '').strip()
                 if term and term not in seen:
@@ -246,7 +246,7 @@ def import_glossary():
                         'definition': row.get('definition', '').strip(),
                         'technology_id': tech.id if tech else None
                     })
-        
+
         if data:
             stmt = insert(Glossary).values(data).on_conflict_do_nothing(index_elements=['term'])
             db.execute(stmt)
@@ -262,6 +262,7 @@ def import_glossary():
                 tech_count += 1
 
         db.commit()
+<<<<<<< HEAD
         print(f"Технологий добавлено: {tech_count}")
     
     db.close()
@@ -662,3 +663,16 @@ if __name__ == "__main__":
         update_glossary()
     except:
         log_error(e)
+=======
+        print(f"   Технологий добавлено: {tech_count}")
+
+    db.close()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Импорт кейсов из CSV")
+    parser.add_argument("csv_file", help="Путь к CSV файлу")
+    args = parser.parse_args()
+
+    import_cases(args.csv_file)
+    import_glossary()
+>>>>>>> c7dbb9e17e8e8794085fffebf894e3f19408ea15

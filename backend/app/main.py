@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+<<<<<<< HEAD
 from app.api import cases_router, countries_router, technologies_router, auth_router, business_problems_router, glossary_router, stats_router, export_router  
 import subprocess
 import threading
@@ -15,6 +16,9 @@ def import_data():
         print(f"Ошибка импорта: {e}")
 
 threading.Thread(target=import_data, daemon=True).start()
+=======
+from app.api import cases_router, countries_router, technologies_router, auth_router, business_problems_router, glossary_router, stats_router, export_router
+>>>>>>> c7dbb9e17e8e8794085fffebf894e3f19408ea15
 
 app = FastAPI(
     title=settings.app_name,
