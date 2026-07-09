@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { caseService } from '../api/caseService'
 import { useAuth } from '../api/AuthContext'
+import { API_URL } from '../api/apiConfig' // Импортируем динамический API_URL из конфигурации
 import SourceBadge from '../components/SourceBadge'
 import type { CaseStudy } from '../data/catalog'
 import type { CreateCaseStudyDto } from '../api/caseService'
@@ -183,7 +184,8 @@ function AdminPage() {
     setIsExporting(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/api/admin/export/csv', {
+      // Используем динамический API_URL вместо захардкоженного localhost
+      const response = await fetch(`${API_URL}/api/admin/export/csv`, {
         method: 'GET',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
