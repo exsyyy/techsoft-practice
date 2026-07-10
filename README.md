@@ -1,8 +1,9 @@
 # Информационная система "Цифровая оптимизация промышленных предприятий и складов"
 
 Проект представляет собой информационную систему для публикации, поиска и анализа кейсов цифровой оптимизации заводов, складов и логистических центров.
+
 Сайт работает на хостинге 
-Домен - [https://techsoftfrtd-denisdenisdenis.amvera.io/]
+Домен - https://techsoftfrtd-denisdenisdenis.amvera.io/
 
 ---
 
@@ -31,7 +32,7 @@ docker-compose up -d --build
 - **Backend (FastAPI)** — [http://localhost:8000](http://localhost:8000)
 - **Swagger (документация API)** — [http://localhost:8000/docs](http://localhost:8000/docs)
 - **PostgreSQL** — `localhost:5432`
-- **Сайт** - [http://localhost:3000/]
+- **Сайт** - http://localhost:3000
 
 ---
 
