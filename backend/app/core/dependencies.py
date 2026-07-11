@@ -3,10 +3,8 @@ from fastapi.security import OAuth2PasswordBearer
 from app.services.auth_service import verify_token
 import logging
 
-# Настройка логов для отладки
 logger = logging.getLogger(__name__)
 
-# Токен берется из заголовка Authorization
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
@@ -23,7 +21,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Возвращаем словарь с данными пользователя из токена
     return {
         "username": payload.get("sub"),
         "role": payload.get("role", "editor")

@@ -25,7 +25,7 @@ class Case(Base):
 
     country_id = Column(Integer, ForeignKey("countries.id"), nullable=False)
     # technology_id = Column(Integer, ForeignKey("technologies.id"), nullable=False)
-    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     verifier_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     company = Column(String(200), nullable=False)

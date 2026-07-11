@@ -51,7 +51,7 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
     return case
 
 
-# ADMIN
+
 @router.post("/admin/cases", response_model=CaseResponse, status_code=201, tags=["admin"])
 def create_case(
         case_data: CaseCreate,
@@ -72,7 +72,6 @@ def update_case(
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
-# Добавлен PATCH-метод для частичного обновления (например, только статуса "status")
 @router.patch("/admin/cases/{case_id}", response_model=CaseResponse, tags=["admin"])
 def patch_case(
         case_id: int,
@@ -80,7 +79,6 @@ def patch_case(
         db: Session = Depends(get_db),
         current_user = Depends(get_current_admin)  # Защита эндпоинта
 ):
-    # case_service.update_case обновит только те поля, которые фронтенд передал в запросе
     case = case_service.update_case(db, case_id, case_data)
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")

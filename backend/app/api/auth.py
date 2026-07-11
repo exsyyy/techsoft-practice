@@ -10,12 +10,10 @@ from app.schemas import Token
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# ======= НАШИ ЖЕСТКО ПРОПИСАННЫЕ ЛОГИНЫ И ПАРОЛИ =======
 HARDCODED_CREDENTIALS = {
     "admin_user": "techsoftadmin",    # Роль: admin
     "editor_user": "techsofteditor"   # Роль: editor
 }
-# =======================================================
 
 
 @router.post("/register", status_code=201, include_in_schema=False)
@@ -48,7 +46,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# ======= ПОЛНОСТЬЮ БЕЗОПАСНЫЙ ЭНДПОИНТ /ME =======
 @router.get("/me")
 def get_me(token: str = Depends(oauth2_scheme)):
     """
@@ -56,19 +53,15 @@ def get_me(token: str = Depends(oauth2_scheme)):
     Это гарантирует, что сервер не упадет из-за отсутствия модулей.
     """
     try:
-        # JWT токен состоит из 3 частей: header.payload.signature
-        # Нам нужна вторая часть (payload)
         payload_part = token.split('.')[1]
 
-        # Добавляем выравнивание для корректного base64-декодирования
         payload_part += "=" * ((4 - len(payload_part) % 4) % 4)
 
-        # Декодируем из base64 в обычную JSON строку и парсим
         payload_json = base64.urlsafe_b64decode(payload_part).decode('utf-8')
         payload_data = json.loads(payload_json)
 
         username = payload_data.get("sub")
-        role = payload_data.get("role", "editor") # По умолчанию editor на всякий случай
+        role = payload_data.get("role", "editor")
 
         if not username:
             raise ValueError("Token is invalid")
